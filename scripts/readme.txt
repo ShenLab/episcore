@@ -1,5 +1,0 @@
-Cross-validation:
-huangclin_randomforest_cv10_gappedpeak_select5_allhs_epitensor.R
-
-Prediction:
-huangclin_randomforest_gappedpeak_select5_predict_allhs_epitensor.R
