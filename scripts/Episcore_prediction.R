@@ -1,5 +1,3 @@
-#It is modified from huangclin_randomforest_gappedpeak_select5_predict_allhs.R,
-#but use epitensor selfrun results of roadmap data, instead of peak count
 
 library(randomForest)
 
@@ -67,6 +65,17 @@ othertensor = epitensor2[match(rownames(other),rownames(epitensor2)),]
 which(as.vector(is.na(othertensor)))
 other = cbind(other,othertensor)
 
+hs.pre = hs
+
+pli = read.csv("~/Desktop/Episcore_working/enrichment/data/exac_pli_combined_addtarget.csv", header = TRUE)
+hs.pli = pli[match(rownames(hs), pli$EnsemblID), ]
+length(which(hs.pli$pLI>0.2))
+
+hs.pliH0.2 = hs.pli[which(hs.pli$pLI>0.2),]
+
+hs = hs.pre[!(rownames(hs.pre) %in% hs.pliH0.2$EnsemblID), ]
+hs.out = hs.pre[rownames(hs.pre) %in% hs.pliH0.2$EnsemblID, ]
+other = rbind(other,hs.out)
 
 hs$type = 0
 huang$type = 1
@@ -90,44 +99,25 @@ for (i in 1:nrandom){
 
 predicted = matrix(unlist(epi.rf.pr),ncol = nrandom)
 rownames(predicted) = rownames(other)
-write.table(apply(predicted,1,mean), "predicted_prob_allhs_epitensor.txt",quote = F,sep = "\t",col.names = F)
+write.table(apply(predicted,1,mean), "predicted_prob_otherwithoutpli>0.2_epitensor.txt",quote = F,sep = "\t",col.names = F)
 
 hipre = matrix(unlist(hipredicted),ncol = nrandom)
 hspre = matrix(unlist(hspredicted),ncol = nrandom)
-summary(apply(hipre,1,mean))
-#    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-#0.2810  0.7626  0.8368  0.8300  0.9101  0.9759 
-summary(apply(hspre,1,mean))
-#     Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
-#3.333e-05 2.423e-02 4.945e-02 6.818e-02 9.785e-02 3.108e-01 
-quantile(apply(hspre,1,mean),probs = seq(0,1,0.1))
-#          0%          10%          20%          30%          40%          50%          60%          70%          80% 
-#3.333333e-05 9.006667e-03 1.847333e-02 2.846000e-02 3.817000e-02 4.945000e-02 6.272000e-02 8.506667e-02 1.156633e-01 
-#90%         100% 
-#  1.629033e-01 3.108167e-01 
-tail(sort(apply(hspre,1,mean)))
-#[1] 0.2645833 0.2696667 0.2735667 0.2973500 0.3035500 0.3108167
-quantile(apply(hipre,1,mean),probs = seq(0,1,0.1))
-#       0%       10%       20%       30%       40%       50%       60%       70%       80%       90%      100% 
-#0.2810000 0.7046100 0.7449067 0.7785233 0.8102633 0.8368333 0.8691500 0.9007100 0.9189767 0.9389900 0.9759333 
-head(sort(apply(hipre,1,mean)))
-#[1] 0.2810000 0.6124333 0.6478333 0.6485167 0.6514833 0.6617167
-
-par(mfrow=c(1,2))
-hist(apply(hipre,1,mean),breaks = 40,xlim = c(0,1),ylim = c(0,13),freq = F,col=rgb(0,0,1,1/4),main='Training Genes',xlab = 'Predicted Probability of Being HIS',lwd=2)
-hist(apply(hspre,1,mean),breaks = 20,xlim = c(0,1),ylim = c(0,13),freq = F,col=rgb(1,0,0,1/4),add = T,lwd=2)
-hist(apply(predicted,1,mean),breaks = 40,freq= F,ylim =c(0,2.5),xlim = c(0,1),xlab = "Predicted Probability of Being HIS",main = "All Other Genes",col = 'red',lwd=2)
 
 rownames(hipre) = rownames(huang)
-write.table(apply(hipre,1,mean), "predicted_prob_hi_allhs_epitensor.txt",quote = F,sep = "\t",col.names = F)
+write.table(apply(hipre,1,mean), "predicted_prob_hiwithoutpli>0.2_epitensor.txt",quote = F,sep = "\t",col.names = F)
 rownames(hspre) = rownames(hs)
-write.table(apply(hspre,1,mean), "predicted_prob_hs_allhs_epitensor.txt",quote = F,sep = "\t",col.names = F)
+write.table(apply(hspre,1,mean), "predicted_prob_hswithoutpli>0.2_epitensor.txt",quote = F,sep = "\t",col.names = F)
 
-plot(hipre[,19],hipre[,9])
-plot(hipre[,15],hipre[,4])
+other.mean = as.data.frame(apply(predicted,1,mean))
+colnames(other.mean) = "Episcore"
+other.mean$batch = "testing"
+hs.mean = as.data.frame(apply(hspre,1,mean))
+colnames(hs.mean) = "Episcore"
+hs.mean$batch = "HStraining"
+hi.mean = as.data.frame(apply(hipre,1,mean))
+colnames(hi.mean) = "Episcore"
+hi.mean$batch = "HItraining"
 
-plot(hspre[,7],hspre[,13])
-plot(hspre[,21],hspre[,14])
-
-plot(predicted[,5],predicted[,16])
-plot(predicted[,11],predicted[,25])
+all = rbind(hi.mean, hs.mean, other.mean)
+write.table(all, "predicted_prob_allgenes_epitensor.txt",quote = F,sep = "\t",col.names = F)
